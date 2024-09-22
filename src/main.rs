@@ -88,7 +88,7 @@ fn print_gpu_temp(row: u16, graphics_usage: &GraphicsUsage, gpu_index: usize) {
 }
 
 /// NOTE: machine_info seems to be rather unstable, throwing sometimes on access
-fn print_gpu_usage(start_row: u16, graphics: Vec<GraphicsUsage>) {
+fn print_gpu_usage(start_row: u16, graphics: &Vec<GraphicsUsage>) {
     for i in 0..graphics.len() {
         let graphics_usage = &graphics[i];
         print_resource_usage(
@@ -99,6 +99,92 @@ fn print_gpu_usage(start_row: u16, graphics: Vec<GraphicsUsage>) {
         );
         print_gpu_temp(start_row + (i as u16) + 1, graphics_usage, i);
     }
+}
+
+fn print_column(row: u16, col_index: usize, col_width: u16, cols_length: usize, text: &str) {
+    queue!(stdout(), cursor::MoveTo(col_width * (col_index as u16), row)).unwrap();
+    let col_start = format!("{} {}", " ".on_white(), text);
+    print!("{}", col_start);
+
+    let mut col_print_len = col_start.len();
+
+    if col_print_len > std::usize::MAX {
+        col_print_len = 0;
+    }
+
+    let mut white_spaces = col_width - (col_print_len as u16);
+    let is_last = col_index == cols_length - 1;
+
+    if is_last {
+        white_spaces -= 1;
+    }
+
+    for _ in 0..white_spaces {
+        print!(" ");
+    }
+
+    if is_last {
+        let width = get_terminal_dimensions().0;
+        queue!(stdout(), cursor::MoveTo(width, row)).unwrap();
+        print!("{}", " ".on_white());
+    }
+}
+
+fn print_row_separator(row: u16) {
+    let width = get_terminal_dimensions().0;
+    queue!(stdout(), cursor::MoveTo(0, row)).unwrap();
+    for _ in 0..width {
+        print!("{}", " ".on_white());
+    }
+}
+
+fn print_processes(start_row: u16, sys: &mut System) {
+    let (width, height) = get_terminal_dimensions();
+    let empty_before: u16 = 1;
+
+    let top_border = start_row + empty_before;
+    print_row_separator(top_border);
+
+    let header_row = top_border + 1;
+    queue!(stdout(), cursor::MoveTo(0, header_row)).unwrap();
+    let cols: u16 = 5;
+    let mut col_width = ((width as f32) / (cols as f32)).floor() as u16;
+
+    if col_width > std::u16::MAX {
+        col_width = 0;
+    }
+
+    let headers = ["PID", "Name", "CPU (%)", "Memory (KB)", "Run time (s)"];
+    // TODO this should not be rendered on every cycle, move to only be printed on first cycle
+    for i in 0..headers.len() {
+        let header = headers[i];
+        print_column(header_row, i, col_width, headers.len(), header);
+    }
+
+    print_row_separator(header_row + 1);
+
+    let max_print_count = height - header_row - 3;
+    let mut i: u16 = 0;
+    for (pid, process) in sys.processes() {
+        if i >= max_print_count {
+            break;
+        }
+        let row = header_row + 2 + i;
+        print_column(row, 0, col_width, headers.len(), format!("{}", pid.as_u32()).as_str());
+        print_column(row, 1, col_width, headers.len(), format!("{:?}", process.name()).as_str());
+        print_column(row, 2, col_width, headers.len(), format!("{}", process.cpu_usage()).as_str());
+        print_column(
+            row,
+            3,
+            col_width,
+            headers.len(),
+            format!("{}", (process.memory() as f32) / 1000.0).as_str()
+        );
+        print_column(row, 4, col_width, headers.len(), format!("{}", process.run_time()).as_str());
+        i += 1;
+    }
+
+    print_row_separator(height - 1);
 }
 
 fn main() {
@@ -112,17 +198,24 @@ fn main() {
         print_memory_usage(0, &mut sys);
         print_cpu_usage(1, &mut sys);
 
-        let result = panic::catch_unwind(|| {
-            let m = Machine::new();
-            print_gpu_usage(2, m.graphics_status());
-        });
+        let graphs_len: Result<usize, usize> = panic
+            ::catch_unwind(|| {
+                let m = Machine::new();
+                let graphics = m.graphics_status();
+                print_gpu_usage(2, &graphics);
+                Ok(graphics.len())
+            })
+            .unwrap();
 
-        if result.is_err() {
+        if graphs_len.is_err() {
             clearscreen::clear().expect("failed to clear");
             panics += 1;
             let height = get_terminal_dimensions().1;
             queue!(stdout(), cursor::MoveTo(0, height)).unwrap();
             print!("Machine panicked {} times", panics);
+        } else {
+            let len = graphs_len.unwrap() as u16;
+            print_processes(3 + len, &mut sys);
         }
 
         std::thread::sleep(std::time::Duration::from_millis(200));
