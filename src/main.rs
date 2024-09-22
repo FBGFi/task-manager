@@ -1,8 +1,8 @@
-use std::{ any::Any, io::{ self, stdout, Read }, panic, time::Duration };
+use std::{ any::Any, collections::HashMap, io::{ self, stdout, Read }, panic, time::Duration };
 use clearscreen;
 use machine_info::{ GraphicsUsage, Machine };
 use terminal_size::{ Width, Height, terminal_size };
-use sysinfo::{ System };
+use sysinfo::{ Pid, Process, System };
 use crossterm::{
     cursor,
     event::{ poll, read, Event, KeyCode, KeyEvent, KeyEventKind },
@@ -161,6 +161,32 @@ fn print_on_last_row(text: &str) {
     print!("{}", text);
 }
 
+fn get_sorted_processes(sys: &mut System) -> Vec<(&Pid, &Process)> {
+    unsafe {
+        let mut vec: Vec<_> = sys.processes().iter().collect();
+        vec.sort_by(|a, b| {
+            match SELECTED_COLUMN {
+                1 => {
+                    return a.1.name().partial_cmp(b.1.name()).unwrap();
+                }
+                2 => {
+                    return a.1.cpu_usage().partial_cmp(&b.1.cpu_usage()).unwrap();
+                }
+                3 => {
+                    return a.1.memory().partial_cmp(&b.1.memory()).unwrap();
+                }
+                4 => {
+                    return a.1.run_time().partial_cmp(&b.1.run_time()).unwrap();
+                }
+                _ => {
+                    return a.0.as_u32().partial_cmp(&a.0.as_u32()).unwrap();
+                }
+            }
+        });
+        return vec;
+    }
+}
+
 fn print_processes(start_row: u16, sys: &mut System) {
     let (width, height) = get_terminal_dimensions();
     let empty_before: u16 = 1;
@@ -182,7 +208,8 @@ fn print_processes(start_row: u16, sys: &mut System) {
 
     let max_print_count = height - header_row - 4;
     let mut i: u16 = 0;
-    for (pid, process) in sys.processes() {
+    let processes = get_sorted_processes(sys);
+    for (pid, process) in processes {
         if i >= max_print_count {
             break;
         }
@@ -228,6 +255,16 @@ fn read_user_input() {
                     if SELECTED_COLUMN < HEADERS_LEN - 1 {
                         SELECTED_COLUMN += 1;
                     }
+                }
+            }
+            Event::Key(KeyEvent { code: KeyCode::Up, kind: KeyEventKind::Press, .. }) => {
+                unsafe {
+                    SORT_DIRECTION = "ASC";
+                }
+            }
+            Event::Key(KeyEvent { code: KeyCode::Down, kind: KeyEventKind::Press, .. }) => {
+                unsafe {
+                    SORT_DIRECTION = "DESC";
                 }
             }
             _ => (),
