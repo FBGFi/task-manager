@@ -165,23 +165,18 @@ fn get_sorted_processes(sys: &mut System) -> Vec<(&Pid, &Process)> {
     unsafe {
         let mut vec: Vec<_> = sys.processes().iter().collect();
         vec.sort_by(|a, b| {
-            match SELECTED_COLUMN {
-                1 => {
-                    return a.1.name().partial_cmp(b.1.name()).unwrap();
-                }
-                2 => {
-                    return a.1.cpu_usage().partial_cmp(&b.1.cpu_usage()).unwrap();
-                }
-                3 => {
-                    return a.1.memory().partial_cmp(&b.1.memory()).unwrap();
-                }
-                4 => {
-                    return a.1.run_time().partial_cmp(&b.1.run_time()).unwrap();
-                }
-                _ => {
-                    return a.0.as_u32().partial_cmp(&a.0.as_u32()).unwrap();
-                }
+            let comp = match SELECTED_COLUMN {
+                1 => a.1.name().partial_cmp(b.1.name()).unwrap(),
+                2 => a.1.cpu_usage().partial_cmp(&b.1.cpu_usage()).unwrap(),
+                3 => a.1.memory().partial_cmp(&b.1.memory()).unwrap(),
+                4 => a.1.run_time().partial_cmp(&b.1.run_time()).unwrap(),
+                // TODO this does not sort for PID?
+                _ => a.0.as_u32().partial_cmp(&a.0.as_u32()).unwrap(),
+            };
+            if SORT_DIRECTION == "ASC" {
+                return comp.reverse();
             }
+            return comp;
         });
         return vec;
     }
