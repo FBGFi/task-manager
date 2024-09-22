@@ -1,4 +1,4 @@
-use std::io::{ self, stdout };
+use std::{ io::{ self, stdout }, panic };
 use clearscreen;
 use colored::*;
 use machine_info::{ GraphicsUsage, Machine };
@@ -83,10 +83,11 @@ fn print_cpu_usage(row: u16, sys: &mut System) {
 }
 
 fn print_gpu_temp(row: u16, graphics_usage: &GraphicsUsage, gpu_index: usize) {
-    queue!(stdout(), cursor::MoveTo(0, row)).unwrap_or(());
+    queue!(stdout(), cursor::MoveTo(0, row)).unwrap();
     print!("GPU {} temperature: {}°C", gpu_index, graphics_usage.temperature);
 }
 
+/// NOTE: machine_info seems to be rather unstable, throwing sometimes on access
 fn print_gpu_usage(start_row: u16, graphics: Vec<GraphicsUsage>) {
     for i in 0..graphics.len() {
         let graphics_usage = &graphics[i];
@@ -105,13 +106,25 @@ fn main() {
     clearscreen::clear().expect("failed to clear");
     queue!(stdout(), cursor::Hide).unwrap();
     let mut sys = System::new_all();
+    let mut panics: u16 = 0;
     loop {
         refresh_system_usage(&mut sys);
         print_memory_usage(0, &mut sys);
         print_cpu_usage(1, &mut sys);
-        let m = Machine::new();
-        let graphics = m.graphics_status();
-        print_gpu_usage(2, graphics);
+
+        let result = panic::catch_unwind(|| {
+            let m = Machine::new();
+            print_gpu_usage(2, m.graphics_status());
+        });
+
+        if result.is_err() {
+            clearscreen::clear().expect("failed to clear");
+            panics += 1;
+            let height = get_terminal_dimensions().1;
+            queue!(stdout(), cursor::MoveTo(0, height)).unwrap();
+            print!("Machine panicked {} times", panics);
+        }
+
         std::thread::sleep(std::time::Duration::from_millis(200));
         // let mut input = String::new();
         // match io::stdin().read_line(&mut input) {
