@@ -70,15 +70,16 @@ fn read_user_input() {
 fn main() {
     clearscreen::clear().expect("failed to clear");
     queue!(stdout(), cursor::Hide).unwrap();
-    let mut sys = System::new_all();
+    // let mut sys = System::new_all();
     set_current_terminal_dimensions();
 
     loop {
+        let mut sys = System::new_all();
         read_user_input();
         clear_screen_on_dimension_changed();
         refresh_system_usage(&mut sys);
         let next_row = print_resource_header(&mut sys, 0);
-        print_processes(next_row, &mut sys);
+        print_processes(next_row + 1, &mut sys);
 
         std::thread::sleep(std::time::Duration::from_millis(CYCLE_WAIT_TIME_MS));
         // let mut input = String::new();

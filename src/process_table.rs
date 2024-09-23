@@ -5,6 +5,7 @@ use sysinfo::{ Pid, Process, System };
 
 use crate::{
     constants::{ PROCESS_HEADERS, PROCESS_HEADERS_LEN },
+    print::{ strip_closing_quotes, truncate_text },
     state::{ SELECTED_COLUMN, SORT_DIRECTION },
     utils::get_terminal_dimensions,
 };
@@ -83,22 +84,27 @@ fn print_column(row: u16, col_index: usize, col_width: u16, cols_length: usize, 
     let col = col_width * (col_index as u16);
     queue!(stdout(), cursor::MoveTo(col, row)).unwrap();
     let is_selected = get_is_selected(col_index);
-    // TODO this will throw if column width is shorter than given text
+    let column_separator = " ";
+    let mut stripped_text = strip_closing_quotes(text);
+    // Checking length of color formatted text does not work, since it is ANSII encoded
+    let mut col_print_len = format!("{}{}", column_separator, stripped_text).chars().count() as u16;
+    if col_print_len > col_width - 1 {
+        stripped_text = truncate_text(stripped_text.as_str(), col_width - 4);
+        col_print_len = format!("{}{}", column_separator, stripped_text).chars().count() as u16;
+    }
     let col_start = format!(
         "{}{}",
         " ".on_white(),
-        format_selected_color(format!(" {}", text).as_str(), is_selected)
+        format_selected_color(format!(" {}", stripped_text).as_str(), is_selected)
     );
-    // Checking length of color formatted text does not work, since it is ANSII encoded
-    let col_print_len = format!("{}{}", " ", format!(" {}", text)).chars().count();
     print!("{}", col_start);
 
-    let mut white_spaces = col_width - (col_print_len as u16);
+    let mut white_spaces = col_width - col_print_len;
     let is_last = col_index == cols_length - 1;
     let width = get_terminal_dimensions().0;
 
     if is_last {
-        white_spaces = width - col - (col_print_len as u16) - 1;
+        white_spaces = width - col - col_print_len - 1;
     }
 
     for _ in 0..white_spaces {

@@ -11,14 +11,12 @@ pub fn print_resource_header(sys: &mut System, start_row: u16) -> u16 {
     print_memory_usage(start_row, sys);
     print_cpu_usage(start_row + 1, sys);
 
-    let graphs_len: Result<usize, usize> = panic
-        ::catch_unwind(|| {
-            let m = Machine::new();
-            let graphics = m.graphics_status();
-            print_gpu_usage(start_row + 2, &graphics);
-            Ok(graphics.len())
-        })
-        .unwrap();
+    let graphs_len = panic::catch_unwind(|| {
+        let m = Machine::new();
+        let graphics = m.graphics_status();
+        print_gpu_usage(start_row + 2, &graphics);
+        return graphics.len();
+    });
 
     if graphs_len.is_err() {
         clearscreen::clear().expect("failed to clear");
