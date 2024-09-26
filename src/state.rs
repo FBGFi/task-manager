@@ -7,6 +7,7 @@ pub struct Dimensions {
 pub enum Mode {
     PRINT,
     INPUT,
+    EXIT,
 }
 
 pub static mut SELECTED_COLUMN: usize = 0;

@@ -90,6 +90,9 @@ fn enter_input_mode() {
                             "p" => {
                                 MODE = Mode::PRINT;
                             }
+                            "q" => {
+                                MODE = Mode::EXIT;
+                            }
                             _ => {
                                 print_at_end_of_row("Error: Incorrect input", height);
                                 cleanup_needed = true;
@@ -142,9 +145,8 @@ fn main() {
     clearscreen::clear().expect("failed to clear");
     queue!(stdout(), cursor::Hide).unwrap();
     set_current_terminal_dimensions();
-
-    loop {
-        unsafe {
+    unsafe {
+        while MODE != Mode::EXIT {
             let mut sys = System::new_all();
             match MODE {
                 Mode::PRINT => {
@@ -156,9 +158,11 @@ fn main() {
                 Mode::INPUT => {
                     enter_input_mode();
                 }
+                Mode::EXIT => (),
             }
+            read_user_input();
+            std::thread::sleep(std::time::Duration::from_millis(CYCLE_WAIT_TIME_MS));
         }
-        read_user_input();
-        std::thread::sleep(std::time::Duration::from_millis(CYCLE_WAIT_TIME_MS));
     }
+    clearscreen::clear().expect("failed to clear");
 }
