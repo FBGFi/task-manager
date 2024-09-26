@@ -10,6 +10,20 @@ pub fn print_on_last_row(text: &str) {
     print!("{}", text);
 }
 
+pub fn empty_row(row: u16) {
+    let width = get_terminal_dimensions().0;
+    queue!(stdout(), cursor::MoveTo(0, row)).unwrap();
+    for _ in 0..width {
+        print!(" ");
+    }
+}
+
+pub fn print_at_end_of_row(text: &str, row: u16) {
+    let width = get_terminal_dimensions().0;
+    queue!(stdout(), cursor::MoveTo(width - (text.chars().count() as u16), row)).unwrap();
+    print!("{}", text);
+}
+
 pub fn strip_closing_quotes(text: &str) -> String {
     let re = Regex::new(r####"^\"|\"$"####).unwrap();
     let result = re.replace_all(text, "");
