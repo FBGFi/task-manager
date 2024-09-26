@@ -26,35 +26,34 @@ fn refresh_system_usage(sys: &mut System) {
     sys.refresh_cpu_usage();
 }
 
-// TODO only used for debugging, remove
-fn print_user_input() {
-    let height = get_terminal_dimensions().1;
-    queue!(stdout(), cursor::MoveTo(0, height)).unwrap();
-    let input = read().unwrap();
-    print!("{:?}, {:?}", input.type_id(), input);
-}
-
 fn read_user_input() {
     if poll(Duration::from_millis(CYCLE_WAIT_TIME_MS)).is_ok_and(|e| { e }) {
         let input = read().unwrap();
         unsafe {
+            if MODE == Mode::NAVIGATE {
+                match input {
+                    Event::Key(KeyEvent { code: KeyCode::Left, kind: KeyEventKind::Press, .. }) => {
+                        if SELECTED_COLUMN > 0 {
+                            SELECTED_COLUMN -= 1;
+                        }
+                    }
+                    Event::Key(
+                        KeyEvent { code: KeyCode::Right, kind: KeyEventKind::Press, .. },
+                    ) => {
+                        if SELECTED_COLUMN < PROCESS_HEADERS_LEN - 1 {
+                            SELECTED_COLUMN += 1;
+                        }
+                    }
+                    Event::Key(KeyEvent { code: KeyCode::Up, kind: KeyEventKind::Press, .. }) => {
+                        SORT_DIRECTION = "ASC";
+                    }
+                    Event::Key(KeyEvent { code: KeyCode::Down, kind: KeyEventKind::Press, .. }) => {
+                        SORT_DIRECTION = "DESC";
+                    }
+                    _ => (),
+                }
+            }
             match input {
-                Event::Key(KeyEvent { code: KeyCode::Left, kind: KeyEventKind::Press, .. }) => {
-                    if SELECTED_COLUMN > 0 {
-                        SELECTED_COLUMN -= 1;
-                    }
-                }
-                Event::Key(KeyEvent { code: KeyCode::Right, kind: KeyEventKind::Press, .. }) => {
-                    if SELECTED_COLUMN < PROCESS_HEADERS_LEN - 1 {
-                        SELECTED_COLUMN += 1;
-                    }
-                }
-                Event::Key(KeyEvent { code: KeyCode::Up, kind: KeyEventKind::Press, .. }) => {
-                    SORT_DIRECTION = "ASC";
-                }
-                Event::Key(KeyEvent { code: KeyCode::Down, kind: KeyEventKind::Press, .. }) => {
-                    SORT_DIRECTION = "DESC";
-                }
                 Event::Key(
                     KeyEvent { code: KeyCode::Char(':'), kind: KeyEventKind::Press, .. },
                 ) => {
@@ -63,7 +62,6 @@ fn read_user_input() {
                 _ => (),
             }
         }
-        // print_user_input();
     }
 }
 
@@ -93,8 +91,32 @@ fn enter_input_mode() {
                             "q" => {
                                 MODE = Mode::EXIT;
                             }
+                            "n" => {
+                                MODE = Mode::NAVIGATE;
+                            }
+                            "s" => {
+                                MODE = Mode::SEARCH;
+                            }
+                            "h" => {
+                                clearscreen::clear().expect("failed to clear");
+                                queue!(stdout(), cursor::MoveTo(0, 0)).unwrap();
+                                println!("Accepted commands are:\n");
+                                println!("p - Print running process information");
+                                println!("h - Help");
+                                println!("n - Navigate between columns");
+                                println!(
+                                    "s - Enter search mode for filtering processes via selected column"
+                                );
+                                println!("q - Exit program");
+                                cleanup_needed = true;
+                                input = String::new();
+                                cursor_position = 1;
+                            }
                             _ => {
-                                print_at_end_of_row("Error: Incorrect input", height);
+                                print_at_end_of_row(
+                                    "Error: Incorrect input, type 'h' for help",
+                                    height
+                                );
                                 cleanup_needed = true;
                             }
                         }
@@ -149,7 +171,7 @@ fn main() {
         while MODE != Mode::EXIT {
             let mut sys = System::new_all();
             match MODE {
-                Mode::PRINT => {
+                Mode::PRINT | Mode::NAVIGATE => {
                     clear_screen_on_dimension_changed();
                     refresh_system_usage(&mut sys);
                     let next_row = print_resource_header(&mut sys, 0);
@@ -157,6 +179,9 @@ fn main() {
                 }
                 Mode::INPUT => {
                     enter_input_mode();
+                }
+                Mode::SEARCH => {
+                    panic!("Not implemented yet");
                 }
                 Mode::EXIT => (),
             }

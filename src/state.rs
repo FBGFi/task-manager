@@ -8,6 +8,8 @@ pub enum Mode {
     PRINT,
     INPUT,
     EXIT,
+    NAVIGATE,
+    SEARCH,
 }
 
 pub static mut SELECTED_COLUMN: usize = 0;
