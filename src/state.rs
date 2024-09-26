@@ -19,3 +19,4 @@ pub static mut PREVIOUS_DIMENSIONS: Dimensions = Dimensions {
     height: 0,
 };
 pub static mut MODE: Mode = Mode::PRINT;
+pub static mut SEARCH_TEXT: String = String::new();
