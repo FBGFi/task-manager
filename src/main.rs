@@ -97,7 +97,7 @@ fn enter_input_mode(mode_to_run: Mode) {
                     MODE = Mode::PRINT;
                 }
                 Event::Key(KeyEvent { code: KeyCode::Enter, kind: KeyEventKind::Press, .. }) => {
-                    if input.chars().count() > 0 {
+                    if MODE != Mode::SEARCH && input.chars().count() > 0 {
                         match input.as_str() {
                             "p" => {
                                 MODE = Mode::PRINT;
@@ -127,28 +127,27 @@ fn enter_input_mode(mode_to_run: Mode) {
                                 cursor_position = cursor_start_position;
                             }
                             _ => {
-                                if MODE == Mode::SEARCH {
-                                    SEARCH_TEXT = format!("{}", input);
-                                    MODE = Mode::PRINT;
-                                } else {
-                                    print_at_end_of_row(
-                                        "Error: Incorrect input, type 'h' for help",
-                                        height
-                                    );
-                                    cleanup_needed = true;
-                                }
+                                print_at_end_of_row(
+                                    "Error: Incorrect input, type 'h' for help",
+                                    height
+                                );
+                                cleanup_needed = true;
                             }
                         }
+                    } else if MODE == Mode::SEARCH {
+                        SEARCH_TEXT = format!("{}", input);
+                        MODE = Mode::PRINT;
+                        clearscreen::clear().expect("failed to clear");
                     }
                 }
                 Event::Key(
                     KeyEvent { code: KeyCode::Backspace, kind: KeyEventKind::Press, .. },
                 ) => {
                     if cursor_position > cursor_start_position {
-                        input.remove((cursor_position - 2) as usize);
+                        input.remove((cursor_position - cursor_start_position - 1) as usize);
                         empty_row(height);
                         cursor_position -= 1;
-                        print_on_last_row(format!(":{input}").as_str());
+                        print_on_last_row(format!("{input_prefix}{input}").as_str());
                     }
                 }
                 Event::Key(KeyEvent { code: KeyCode::Left, kind: KeyEventKind::Press, .. }) => {
