@@ -24,30 +24,23 @@ fn read_user_input() {
     if poll(Duration::from_millis(CYCLE_WAIT_TIME_MS)).is_ok_and(|e| { e }) {
         let input = read().unwrap();
         unsafe {
-            // if MODE == Mode::NAVIGATE {
-            //     match input {
-            //         Event::Key(KeyEvent { code: KeyCode::Left, kind: KeyEventKind::Press, .. }) => {
-            //             if SELECTED_COLUMN > 0 {
-            //                 SELECTED_COLUMN -= 1;
-            //             }
-            //         }
-            //         Event::Key(
-            //             KeyEvent { code: KeyCode::Right, kind: KeyEventKind::Press, .. },
-            //         ) => {
-            //             if SELECTED_COLUMN < PROCESS_HEADERS_LEN - 1 {
-            //                 SELECTED_COLUMN += 1;
-            //             }
-            //         }
-            //         Event::Key(KeyEvent { code: KeyCode::Up, kind: KeyEventKind::Press, .. }) => {
-            //             SORT_DIRECTION = "ASC";
-            //         }
-            //         Event::Key(KeyEvent { code: KeyCode::Down, kind: KeyEventKind::Press, .. }) => {
-            //             SORT_DIRECTION = "DESC";
-            //         }
-            //         _ => (),
-            //     }
-            // }
             match input {
+                Event::Key(KeyEvent { code: KeyCode::Left, kind: KeyEventKind::Press, .. }) => {
+                    if SELECTED_COLUMN > 0 {
+                        SELECTED_COLUMN -= 1;
+                    }
+                }
+                Event::Key(KeyEvent { code: KeyCode::Right, kind: KeyEventKind::Press, .. }) => {
+                    if SELECTED_COLUMN < PROCESS_HEADERS_LEN - 1 {
+                        SELECTED_COLUMN += 1;
+                    }
+                }
+                Event::Key(KeyEvent { code: KeyCode::Up, kind: KeyEventKind::Press, .. }) => {
+                    SORT_DIRECTION = "ASC";
+                }
+                Event::Key(KeyEvent { code: KeyCode::Down, kind: KeyEventKind::Press, .. }) => {
+                    SORT_DIRECTION = "DESC";
+                }
                 Event::Key(
                     KeyEvent { code: KeyCode::Char(':'), kind: KeyEventKind::Press, .. },
                 ) => {
@@ -60,6 +53,7 @@ fn read_user_input() {
 }
 
 pub fn run_print_mode() {
+    // TODO declaring this only once might give incorrect cpu information
     let mut sys = System::new_with_specifics(
         RefreshKind::new().with_cpu(CpuRefreshKind::everything())
     );

@@ -159,9 +159,9 @@ pub fn strip_closing_quotes(text: &str) -> String {
     return format!("{}", result);
 }
 
-pub fn truncate_text(text: &str, max_length: u16) -> String {
+pub fn truncate_text(text: String, max_length: u16) -> String {
     if (text.chars().count() as u16) < max_length {
-        return format!("{}", text);
+        return text;
     }
     let trailing_characters = "...";
     let truncate_length = (
@@ -170,6 +170,6 @@ pub fn truncate_text(text: &str, max_length: u16) -> String {
         (trailing_characters.chars().count() as i32)
     ).abs() as u16;
     let re = Regex::new(format!(".{}{}{}$", "{", truncate_length, "}").as_str()).unwrap();
-    let result = re.replace_all(text, trailing_characters);
+    let result = re.replace_all(text.as_str(), trailing_characters);
     return format!("{}", result);
 }
