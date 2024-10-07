@@ -6,9 +6,8 @@ use sysinfo::{ Pid, Process, System };
 
 use crate::{
     constants::{ PROCESS_HEADERS, PROCESS_HEADERS_LEN },
-    print::{ strip_closing_quotes, truncate_text },
     state::{ SEARCH_TEXT, SELECTED_COLUMN, SORT_DIRECTION },
-    utils::get_terminal_dimensions,
+    utils::{ strip_closing_quotes, truncate_text, get_terminal_dimensions },
 };
 
 pub fn print_processes(start_row: u16, sys: &mut System) {

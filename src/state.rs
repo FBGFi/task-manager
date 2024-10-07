@@ -8,7 +8,6 @@ pub enum Mode {
     PRINT,
     INPUT,
     EXIT,
-    NAVIGATE,
     SEARCH,
 }
 

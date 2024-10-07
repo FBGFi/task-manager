@@ -26,8 +26,6 @@ pub fn print_resource_header(sys: &mut System, start_row: u16) -> u16 {
 }
 
 fn print_cpu_usage(row: u16, sys: &mut System) {
-    std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
-    sys.refresh_cpu_usage();
     print_resource_usage(row, "CPU", sys.global_cpu_usage(), 100.0);
 }
 
