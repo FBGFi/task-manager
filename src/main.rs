@@ -18,7 +18,7 @@ use utils::{
 };
 use std::{ any::Any, io::{ stdin, stdout, Write }, time::Duration };
 use clearscreen;
-use sysinfo::System;
+use sysinfo::{ CpuRefreshKind, RefreshKind, System };
 use crossterm::{ cursor, event::{ poll, read, Event, KeyCode, KeyEvent, KeyEventKind }, queue };
 
 fn refresh_system_usage(sys: &mut System) {
@@ -190,7 +190,9 @@ fn main() {
     set_current_terminal_dimensions();
     unsafe {
         while MODE != Mode::EXIT {
-            let mut sys = System::new_all();
+            let mut sys = System::new_with_specifics(
+                RefreshKind::new().with_cpu(CpuRefreshKind::everything())
+            );
             match MODE {
                 Mode::PRINT | Mode::NAVIGATE => {
                     clear_screen_on_dimension_changed();

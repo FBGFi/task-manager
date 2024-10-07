@@ -25,27 +25,10 @@ pub fn print_resource_header(sys: &mut System, start_row: u16) -> u16 {
     return start_row + 2 + (graphs_len.unwrap() as u16);
 }
 
-/// NOTE: atleast on my system Windows task manager returns drastically different values for cpu usage
 fn print_cpu_usage(row: u16, sys: &mut System) {
-    let cpus = sys.cpus();
-
-    // Print each cpu separately
-    // for i in 0..cpus.len() {
-    //     let cpu = &cpus[i];
-    //     print_resource_usage(
-    //         (i as u16) + 1,
-    //         format!("CPU{}", i + 1).as_str(),
-    //         cpu.cpu_usage(),
-    //         100.0
-    //     );
-    // }
-
-    // Print total cpu usage
-    let mut total_used: f32 = 0.0;
-    for cpu in cpus {
-        total_used += cpu.cpu_usage();
-    }
-    print_resource_usage(row, "CPU", total_used, 100.0 * (cpus.len() as f32));
+    std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+    sys.refresh_cpu_usage();
+    print_resource_usage(row, "CPU", sys.global_cpu_usage(), 100.0);
 }
 
 fn print_gpu_temp(row: u16, graphics_usage: &GraphicsUsage, gpu_index: usize) {
